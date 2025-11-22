@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KeMemory - Product Confetti Edition</title>
+    <title>KeMemory - Real Product Edition</title>
     
-    <!-- NEU: Konfetti-Bibliothek wird hier geladen -->
+    <!-- Konfetti-Bibliothek -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
     <style>
@@ -25,60 +25,98 @@
             min-height: 100vh;
             margin: 0;
             color: var(--keba-dark);
-            overflow-x: hidden; /* Verhindert seitliches Scrollen durch Konfetti */
+            position: relative;
+            overflow-x: hidden;
         }
 
-        /* NEU: Styling für die Konfetti-Leinwand */
         #confetti-canvas {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            pointer-events: none; /* Klicks gehen durch die Leinwand durch */
-            z-index: 1000; /* Stellt sicher, dass es über allem liegt */
+            pointer-events: none;
+            z-index: 2000;
         }
 
         header {
             background-color: var(--keba-green);
             color: white;
             width: 100%;
-            text-align: center;
-            padding: 1rem 0;
+            padding: 1.5rem 0;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
-        h1 { margin: 0; font-size: 2rem; }
-        p { margin: 5px 0 0; font-weight: 300; }
+        /* Timer oben rechts (Sekunden) */
+        .timer-display-top {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            font-weight: bold;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 5px 20px;
+            border-radius: 20px;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        h1 { 
+            margin: 0; 
+            font-size: 3.5rem; /* Etwas größer, da Logo weg ist */
+            line-height: 1; 
+            font-weight: 700; 
+            letter-spacing: 1px;
+        }
+        
+        .slogan { 
+            margin: 8px 0 0 0; 
+            font-weight: 300; 
+            font-size: 1.2rem; 
+            opacity: 0.9;
+            letter-spacing: 0.5px;
+        }
+
+        /* Info-Bar für Spieler (Zentriert) */
+        .info-bar {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin: 20px 0;
+            position: relative;
+        }
 
         .scoreboard {
             display: flex;
-            justify-content: space-between;
-            width: 90%;
-            max-width: 600px;
-            margin: 20px 0;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            z-index: 10; /* Damit es nicht unter dem Konfetti verschwindet */
+            gap: 40px;
+            justify-content: center;
         }
 
         .player {
-            text-align: center;
-            padding: 10px 20px;
-            border-radius: 5px;
-            border: 2px solid transparent;
+            background: white;
+            padding: 10px 30px;
+            border-radius: 8px;
+            border: 3px solid transparent;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             transition: all 0.3s;
+            text-align: center;
+            min-width: 120px;
         }
 
         .player.active {
             border-color: var(--keba-green);
             background-color: rgba(86, 174, 52, 0.1);
+            transform: scale(1.05);
             font-weight: bold;
         }
 
-        .score { font-size: 1.5rem; color: var(--keba-green); }
+        .score-val { font-size: 1.5rem; color: var(--keba-green); font-weight: bold; display: block; margin-top: 5px; }
 
         .game-grid {
             display: grid;
@@ -99,10 +137,7 @@
             transition: transform 0.5s;
         }
 
-        .card.flipped {
-            transform: rotateY(180deg);
-            cursor: default;
-        }
+        .card.flipped { transform: rotateY(180deg); cursor: default; }
 
         .card-face {
             position: absolute;
@@ -124,10 +159,7 @@
             font-size: 1.2rem;
             letter-spacing: 1px;
         }
-
-        .card-front::after {
-            content: "KEBA";
-        }
+        .card-front::after { content: "KEBA"; }
 
         .card-back {
             background-color: white;
@@ -153,54 +185,145 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 600;
             color: #333;
             line-height: 1.1;
         }
 
-        .controls { margin-bottom: 30px; }
-        
+        .controls { margin-bottom: 30px; display: flex; gap: 10px; align-items: center; }
         button {
             background-color: var(--keba-green);
             color: white;
             border: none;
-            padding: 10px 20px;
-            font-size: 1rem;
+            padding: 12px 25px;
+            font-size: 1.1rem;
             border-radius: 5px;
             cursor: pointer;
             transition: background 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        
         button:hover { background-color: var(--keba-green-dark); }
+
+        .footer { margin-top: auto; padding: 20px; font-size: 0.9rem; color: #888; text-align: center; width: 100%; }
+
+        /* --- HIGHSCORE OVERLAY --- */
+        #highscore-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+        }
+
+        .highscore-box {
+            background: white;
+            color: var(--keba-dark);
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .highscore-box h2 { color: var(--keba-green); margin-top: 0; }
+        
+        .input-group { margin: 20px 0; }
+        .input-group input {
+            padding: 10px;
+            font-size: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            width: 60%;
+        }
+        .input-group button { margin-left: 10px; padding: 10px 20px; font-size: 1rem;}
+
+        .score-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+            text-align: left;
+        }
+        .score-list li {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .score-list li:nth-child(1) { font-weight: bold; color: #d4af37; }
+        .score-list li:nth-child(2) { font-weight: bold; color: #c0c0c0; }
+        .score-list li:nth-child(3) { font-weight: bold; color: #cd7f32; }
+
+        .close-btn {
+            margin-top: 20px;
+            background-color: #666;
+        }
+        .close-btn:hover { background-color: #444; }
 
         @media (max-width: 800px) {
             .game-grid { grid-template-columns: repeat(4, 1fr); }
+            .timer-display-top {
+                position: relative; right: auto; top: auto; transform: none; margin-bottom: 10px;
+            }
+            header { padding-top: 10px; }
         }
         @media (max-width: 500px) {
             .game-grid { grid-template-columns: repeat(3, 1fr); }
             .card-label { font-size: 0.6rem; }
+            .scoreboard { gap: 10px; }
+            .player { padding: 5px 10px; min-width: 80px; }
         }
     </style>
 </head>
 <body>
 
-<!-- NEU: Diese Leinwand wird für die Konfetti-Animation benötigt -->
 <canvas id="confetti-canvas"></canvas>
 
+<!-- Highscore Overlay -->
+<div id="highscore-overlay">
+    <div class="highscore-box">
+        <h2>Spiel Vorbei!</h2>
+        <p id="final-message"></p>
+        
+        <div id="input-area" class="input-group">
+            <input type="text" id="player-name" placeholder="Dein Name" maxlength="15">
+            <button onclick="saveScore()">Speichern</button>
+        </div>
+
+        <h3>Top 20 Highscores</h3>
+        <ul id="score-list" class="score-list"></ul>
+
+        <button class="close-btn" onclick="closeOverlay()">Schließen (<span id="countdown">15</span>s)</button>
+    </div>
+</div>
+
 <header>
+    <!-- Logo entfernt -->
     <h1>KeMemory</h1>
-    <p>Automation by Innovation</p>
+    <p class="slogan">Automation by innovation</p>
+
+    <!-- Timer oben rechts (Sekunden) -->
+    <div class="timer-display-top">Zeit: <span id="header-timer">0</span>s</div>
 </header>
 
-<div class="scoreboard">
-    <div class="player active" id="p1-panel">
-        <div>Spieler 1</div>
-        <div class="score" id="score-p1">0</div>
-    </div>
-    <div class="player" id="p2-panel">
-        <div>Spieler 2</div>
-        <div class="score" id="score-p2">0</div>
+<div class="info-bar">
+    <div class="scoreboard">
+        <div class="player active" id="p1-panel">
+            <div>Spieler 1</div>
+            <div class="score-val" id="score-p1">0</div>
+        </div>
+        <div class="player" id="p2-panel">
+            <div>Spieler 2</div>
+            <div class="score-val" id="score-p2">0</div>
+        </div>
     </div>
 </div>
 
@@ -209,7 +332,7 @@
 </div>
 
 <div class="controls">
-    <button onclick="initGame()">Neues Spiel starten</button>
+    <button onclick="startNewGame()">Neues Spiel starten</button>
 </div>
 
 <div class="footer">
@@ -218,67 +341,46 @@
 
 <script>
     const products = [
-        { 
-            id: 'kemro', 
-            name: 'Kemro X Platform', 
-            img: 'https://a.storyblok.com/f/40131/4000x2083/aadda63c7b/kemro-x_960x500px_l.jpg'
-        },
-        { 
-            id: 'controls', 
-            name: 'KeDrive D3', 
-            img: 'https://a.storyblok.com/f/40131/768x500/75ed154238/30_header-d3-du.png/m/768x0/filters:format(webp)' 
-        },
-        { 
-            id: 'hmi', 
-            name: 'KeTop T150', 
-            img: 'https://a.storyblok.com/f/40131/768x500/f9d41427cc/30_header_ketop_safe_wireless.png/m/768x0/filters:format(webp)' 
-        },
-        { 
-            id: 'io', 
-            name: 'KeConnect C5', 
-            img: 'https://a.storyblok.com/f/40131/768x500/cdff56e2f7/header_keconnect-c5.png/m/768x0/filters:format(webp)' 
-        },
-        { 
-            id: 'servoregler', 
-            name: 'ServoOne', 
-            img: 'https://a.storyblok.com/f/40131/1600x1042/4d0c59f1b0/header_servoone-tl_768x500px_300kw_rechts.png/m/1200x0' 
-        },
-        { 
-            id: 'motor', 
-            name: 'KeDrive Motor', 
-            img: 'https://a.storyblok.com/f/40131/1200x627/399b644ba5/keba_synchron_motoren_dms2_og.jpg/m/1200x0' 
-        },
-        { 
-            id: 'spindle', 
-            name: 'LeviSpin', 
-            img: 'https://a.storyblok.com/f/40131/1200x630/cbdca5cf3f/og_title_1200x630px_magnetic-bearing-benefits_.jpg/m/1200x0' 
-        },
-        { 
-            id: 'bearing', 
-            name: 'Magnetlager', 
-            img: 'https://a.storyblok.com/f/40131/370x260/6bbae3375c/tabs_magnetlager_multipollager_370x260px.jpg/m/720x0/filters:format(webp)' 
-        },
-        { 
-            id: 'kebob', 
-            name: 'KeBob AI', 
-            img: 'https://a.storyblok.com/f/40131/3840x2160/9b27bc5a1c/kebob_freisteller.png/m/261x261' 
-        },
-        { 
-            id: 'lottery', 
-            name: 'KeWin Multimedia', 
-            img: 'https://a.storyblok.com/f/40131/547x274/73f42c39f2/6a_produkte_multimedia_web.jpg/m/960x0/filters:format(webp)' 
-        },
-        { 
-            id: 'locker', 
-            name: 'KePol FS-09', 
-            img: 'https://a.storyblok.com/f/40131/960x720/137ac771a9/fs_fliesstextbild-2.jpg/m/960x0' 
-        },
-        { 
-            id: 'atm', 
-            name: 'KePlus R10', 
-            img: 'https://a.storyblok.com/f/40131/500x500/d7bd1cf949/de_r10_fl_frontal.jpg/m/560x0/filters:format(webp)' 
-        }
+        { id: 'kemro', name: 'Kemro X Platform', img: 'https://a.storyblok.com/f/40131/4000x2083/aadda63c7b/kemro-x_960x500px_l.jpg' },
+        { id: 'controls', name: 'KeDrive D3', img: 'https://a.storyblok.com/f/40131/768x500/75ed154238/30_header-d3-du.png/m/768x0/filters:format(webp)' },
+        { id: 'hmi', name: 'KeTop T150', img: 'https://a.storyblok.com/f/40131/768x500/f9d41427cc/30_header_ketop_safe_wireless.png/m/768x0/filters:format(webp)' },
+        { id: 'io', name: 'KeConnect C5', img: 'https://a.storyblok.com/f/40131/768x500/cdff56e2f7/header_keconnect-c5.png/m/768x0/filters:format(webp)' },
+        { id: 'servoregler', name: 'ServoOne', img: 'https://a.storyblok.com/f/40131/1600x1042/4d0c59f1b0/header_servoone-tl_768x500px_300kw_rechts.png/m/1200x0' },
+        { id: 'motor', name: 'KeDrive Motor', img: 'https://a.storyblok.com/f/40131/1200x627/399b644ba5/keba_synchron_motoren_dms2_og.jpg/m/1200x0' },
+        { id: 'spindle', name: 'LeviSpin', img: 'https://a.storyblok.com/f/40131/1200x630/cbdca5cf3f/og_title_1200x630px_magnetic-bearing-benefits_.jpg/m/1200x0' },
+        { id: 'bearing', name: 'Magnetlager', img: 'https://a.storyblok.com/f/40131/370x260/6bbae3375c/tabs_magnetlager_multipollager_370x260px.jpg/m/720x0/filters:format(webp)' },
+        { id: 'kebob', name: 'KeBob AI', img: 'https://a.storyblok.com/f/40131/3840x2160/9b27bc5a1c/kebob_freisteller.png/m/261x261' },
+        { id: 'lottery', name: 'KeWin Multimedia', img: 'https://a.storyblok.com/f/40131/547x274/73f42c39f2/6a_produkte_multimedia_web.jpg/m/960x0/filters:format(webp)' },
+        { id: 'locker', name: 'KePol FS-09', img: 'https://a.storyblok.com/f/40131/960x720/137ac771a9/fs_fliesstextbild-2.jpg/m/960x0' },
+        { id: 'atm', name: 'KePlus R10', img: 'https://a.storyblok.com/f/40131/500x500/d7bd1cf949/de_r10_fl_frontal.jpg/m/560x0/filters:format(webp)' }
     ];
+
+    // Konfetti-Bilder laden
+    let confettiShapes = [];
+    
+    function preloadConfettiImages() {
+        const promises = products.map(p => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = p.img;
+                img.onload = () => {
+                    resolve({
+                        type: 'image',
+                        src: p.img, 
+                        image: img 
+                    });
+                };
+                img.onerror = () => resolve(null);
+            });
+        });
+
+        Promise.all(promises).then(shapes => {
+            confettiShapes = shapes.filter(s => s !== null);
+        });
+    }
+    
+    preloadConfettiImages();
 
     let cardsArray = [];
     let hasFlippedCard = false;
@@ -288,63 +390,40 @@
     let currentPlayer = 'p1';
     let matchesFound = 0;
     const totalPairs = products.length;
+    
+    let startTime;
+    let timerInterval;
+    let elapsedSeconds = 0;
+    let gameActive = false;
+    let finalScore = 0;
 
-    // --- NEUE KONFETTI-FUNKTION ---
-    function triggerProductConfetti() {
-        const canvas = document.getElementById('confetti-canvas');
-        if (!canvas || typeof confetti === 'undefined') {
-            console.error("Konfetti-Leinwand oder Bibliothek nicht gefunden.");
-            return;
-        }
-
-        const productShapes = products.map(p => ({
-            type: 'image',
-            src: p.img,
-            weight: 0.5 // Gewichtung, wie oft ein Bild erscheint
-        }));
-
-        const confettiInstance = confetti.create(canvas, {
-            resize: true,
-            useWorker: true
-        });
-
-        function fire(particleRatio, opts) {
-            confettiInstance({
-                ...opts,
-                particleCount: Math.floor(20 * particleRatio), // Weniger Partikel, da Bilder größer sind
-                shapes: productShapes,
-                scalar: 1.8, // Macht die Bilder größer und besser sichtbar
-                disableForReducedMotion: true
-            });
-        }
-
-        // Feuert zwei Kanonen von den Seiten ab
-        fire(0.25, { spread: 26, startVelocity: 55, origin: { x: 0, y: 0.7 } });
-        fire(0.2, { spread: 60, origin: { x: 0, y: 0.7 } });
-        fire(0.35, { spread: 100, decay: 0.91, scalar: 1.2, origin: { x: 0, y: 0.7 } });
-        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.5, origin: { x: 0, y: 0.7 } });
-        fire(0.1, { spread: 120, startVelocity: 45, origin: { x: 0, y: 0.7 } });
-        
-        fire(0.25, { spread: 26, startVelocity: 55, origin: { x: 1, y: 0.7 } });
-        fire(0.2, { spread: 60, origin: { x: 1, y: 0.7 } });
-        fire(0.35, { spread: 100, decay: 0.91, scalar: 1.2, origin: { x: 1, y: 0.7 } });
-        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.5, origin: { x: 1, y: 0.7 } });
-        fire(0.1, { spread: 120, startVelocity: 45, origin: { x: 1, y: 0.7 } });
+    function startNewGame() {
+        initGame();
     }
 
-
     function initGame() {
-        // Versteckt altes Konfetti, falls vorhanden
         const canvas = document.getElementById('confetti-canvas');
-        if (canvas && typeof confetti !== 'undefined') {
-            confetti.create(canvas).reset();
-        }
-
-        const grid = document.getElementById('grid');
-        grid.innerHTML = '';
+        if (canvas && typeof confetti !== 'undefined') confetti.create(canvas).reset();
+        
+        document.getElementById('highscore-overlay').style.display = 'none';
+        document.getElementById('grid').innerHTML = '';
+        
         scores = { p1: 0, p2: 0 };
         matchesFound = 0;
         currentPlayer = 'p1';
+        gameActive = true;
+        elapsedSeconds = 0;
+        document.getElementById('header-timer').innerText = '0';
+        
+        if (timerInterval) clearInterval(timerInterval);
+        startTime = Date.now();
+        timerInterval = setInterval(() => {
+            if(gameActive) {
+                elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('header-timer').innerText = elapsedSeconds;
+            }
+        }, 1000);
+
         updateScoreboard();
         
         cardsArray = [...products, ...products];
@@ -368,14 +447,14 @@
 
             card.appendChild(front);
             card.appendChild(back);
-            
             card.addEventListener('click', flipCard);
-            grid.appendChild(card);
+            document.getElementById('grid').appendChild(card);
         });
     }
 
     function flipCard() {
         if (lockBoard) return;
+        if (!gameActive) return;
         if (this === firstCard) return;
 
         this.classList.add('flipped');
@@ -392,7 +471,6 @@
 
     function checkForMatch() {
         let isMatch = firstCard.dataset.name === secondCard.dataset.name;
-
         if (isMatch) {
             disableCards();
             incrementScore();
@@ -408,13 +486,7 @@
         matchesFound++;
         
         if (matchesFound === totalPairs) {
-            // HIER WIRD DAS KONFETTI AUSGELÖST
-            triggerProductConfetti(); 
-            
-            setTimeout(() => {
-                let winner = scores.p1 > scores.p2 ? "Spieler 1" : (scores.p2 > scores.p1 ? "Spieler 2" : "Unentschieden");
-                alert(`Spiel vorbei! ${winner} gewinnt!`);
-            }, 1000); // Kleine Verzögerung, damit man das Konfetti sieht
+            gameOver();
         }
     }
 
@@ -457,6 +529,142 @@
     function resetBoard() {
         [hasFlippedCard, lockBoard] = [false, false];
         [firstCard, secondCard] = [null, null];
+    }
+
+    function gameOver() {
+        clearInterval(timerInterval);
+        gameActive = false;
+
+        fireProductConfetti();
+
+        let winningScore = Math.max(scores.p1, scores.p2);
+        let timeBonus = Math.max(0, 500 - (elapsedSeconds * 2));
+        finalScore = (winningScore * 100) + timeBonus;
+
+        let winnerName = scores.p1 > scores.p2 ? "Spieler 1" : (scores.p2 > scores.p1 ? "Spieler 2" : "Unentschieden");
+        let message = `${winnerName} gewinnt! (Zeit: ${elapsedSeconds}s)`;
+        if(scores.p1 === scores.p2) message = "Unentschieden!";
+
+        setTimeout(() => {
+            showHighscoreOverlay(message, finalScore);
+        }, 3000);
+    }
+
+    function fireProductConfetti() {
+        var duration = 3000;
+        var end = Date.now() + duration;
+        
+        (function frame() {
+            if (confettiShapes.length > 0) {
+                let randomShape = confettiShapes[Math.floor(Math.random() * confettiShapes.length)];
+                
+                confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    shapes: ['image'],
+                    shapeOptions: {
+                        image: {
+                            src: randomShape.src,
+                            width: 100,
+                            height: 100
+                        }
+                    },
+                    scalar: 2.5,
+                    startVelocity: 40
+                });
+                
+                randomShape = confettiShapes[Math.floor(Math.random() * confettiShapes.length)];
+                confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    shapes: ['image'],
+                    shapeOptions: {
+                        image: {
+                            src: randomShape.src,
+                            width: 100,
+                            height: 100
+                        }
+                    },
+                    scalar: 2.5,
+                    startVelocity: 40
+                });
+            } else {
+                confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#56ae34', '#448b29', '#333333', '#eef2f5']
+                });
+                confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#56ae34', '#448b29', '#333333', '#eef2f5']
+                });
+            }
+
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        }());
+    }
+
+    function showHighscoreOverlay(msg, score) {
+        document.getElementById('final-message').textContent = `${msg} - Gesamtpunkte: ${score}`;
+        document.getElementById('highscore-overlay').style.display = 'flex';
+        document.getElementById('player-name').value = '';
+        document.getElementById('input-area').style.display = 'block';
+        loadHighscores();
+        startCountdown();
+    }
+
+    function saveScore() {
+        const name = document.getElementById('player-name').value.trim() || "Anonym";
+        const newEntry = { name: name, score: finalScore, date: new Date().toLocaleDateString() };
+        let highscores = JSON.parse(localStorage.getItem('keba_highscores')) || [];
+        highscores.push(newEntry);
+        highscores.sort((a, b) => b.score - a.score);
+        highscores = highscores.slice(0, 20);
+        localStorage.setItem('keba_highscores', JSON.stringify(highscores));
+        loadHighscores();
+        document.getElementById('input-area').style.display = 'none';
+    }
+
+    function loadHighscores() {
+        const list = document.getElementById('score-list');
+        list.innerHTML = '';
+        const highscores = JSON.parse(localStorage.getItem('keba_highscores')) || [];
+        highscores.forEach((entry, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${index + 1}. ${entry.name}</span> <span>${entry.score} Pkt</span>`;
+            list.appendChild(li);
+        });
+    }
+
+    let countdownInterval;
+    function startCountdown() {
+        let timeLeft = 15;
+        const btn = document.getElementById('countdown');
+        btn.innerText = timeLeft;
+        if (countdownInterval) clearInterval(countdownInterval);
+        countdownInterval = setInterval(() => {
+            timeLeft--;
+            btn.innerText = timeLeft;
+            if (timeLeft <= 0) {
+                closeOverlay();
+            }
+        }, 1000);
+    }
+
+    function closeOverlay() {
+        clearInterval(countdownInterval);
+        document.getElementById('highscore-overlay').style.display = 'none';
     }
 
     initGame();
