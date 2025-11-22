@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KeMemory - Real Product Edition</title>
+    <title>KeMemory - Product Confetti Edition</title>
+    
+    <!-- NEU: Konfetti-Bibliothek wird hier geladen -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
     <style>
         :root {
             --keba-green: #56ae34;
@@ -21,6 +25,18 @@
             min-height: 100vh;
             margin: 0;
             color: var(--keba-dark);
+            overflow-x: hidden; /* Verhindert seitliches Scrollen durch Konfetti */
+        }
+
+        /* NEU: Styling für die Konfetti-Leinwand */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none; /* Klicks gehen durch die Leinwand durch */
+            z-index: 1000; /* Stellt sicher, dass es über allem liegt */
         }
 
         header {
@@ -45,6 +61,7 @@
             padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 10; /* Damit es nicht unter dem Konfetti verschwindet */
         }
 
         .player {
@@ -65,7 +82,6 @@
 
         .game-grid {
             display: grid;
-            /* 6 Spalten für mehr Karten */
             grid-template-columns: repeat(6, 1fr);
             gap: 10px;
             width: 95%;
@@ -76,7 +92,7 @@
 
         .card {
             background-color: transparent;
-            aspect-ratio: 3/4; /* Hochformat passend zu Produktbildern */
+            aspect-ratio: 3/4;
             cursor: pointer;
             position: relative;
             transform-style: preserve-3d;
@@ -158,7 +174,6 @@
         
         button:hover { background-color: var(--keba-green-dark); }
 
-        /* Responsive Anpassungen */
         @media (max-width: 800px) {
             .game-grid { grid-template-columns: repeat(4, 1fr); }
         }
@@ -169,6 +184,9 @@
     </style>
 </head>
 <body>
+
+<!-- NEU: Diese Leinwand wird für die Konfetti-Animation benötigt -->
+<canvas id="confetti-canvas"></canvas>
 
 <header>
     <h1>KeMemory</h1>
@@ -199,13 +217,11 @@
 </div>
 
 <script>
-    // Echte Bild-URLs basierend auf den KEBA-Webseiten. https://www.keba.com/web/industrial-automation/de/pictures/products/control-systems/kemro-x/kemrox-stage-mobile-300x400.webp
     const products = [
         { 
             id: 'kemro', 
             name: 'Kemro X Platform', 
             img: 'https://a.storyblok.com/f/40131/4000x2083/aadda63c7b/kemro-x_960x500px_l.jpg'
-			
         },
         { 
             id: 'controls', 
@@ -262,7 +278,6 @@
             name: 'KePlus R10', 
             img: 'https://a.storyblok.com/f/40131/500x500/d7bd1cf949/de_r10_fl_frontal.jpg/m/560x0/filters:format(webp)' 
         }
-        // Wallbox haben wir weggelassen, um auf glatte 12 Paare (24 Karten) für das 6x4 Raster zu kommen
     ];
 
     let cardsArray = [];
@@ -274,7 +289,57 @@
     let matchesFound = 0;
     const totalPairs = products.length;
 
+    // --- NEUE KONFETTI-FUNKTION ---
+    function triggerProductConfetti() {
+        const canvas = document.getElementById('confetti-canvas');
+        if (!canvas || typeof confetti === 'undefined') {
+            console.error("Konfetti-Leinwand oder Bibliothek nicht gefunden.");
+            return;
+        }
+
+        const productShapes = products.map(p => ({
+            type: 'image',
+            src: p.img,
+            weight: 0.5 // Gewichtung, wie oft ein Bild erscheint
+        }));
+
+        const confettiInstance = confetti.create(canvas, {
+            resize: true,
+            useWorker: true
+        });
+
+        function fire(particleRatio, opts) {
+            confettiInstance({
+                ...opts,
+                particleCount: Math.floor(20 * particleRatio), // Weniger Partikel, da Bilder größer sind
+                shapes: productShapes,
+                scalar: 1.8, // Macht die Bilder größer und besser sichtbar
+                disableForReducedMotion: true
+            });
+        }
+
+        // Feuert zwei Kanonen von den Seiten ab
+        fire(0.25, { spread: 26, startVelocity: 55, origin: { x: 0, y: 0.7 } });
+        fire(0.2, { spread: 60, origin: { x: 0, y: 0.7 } });
+        fire(0.35, { spread: 100, decay: 0.91, scalar: 1.2, origin: { x: 0, y: 0.7 } });
+        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.5, origin: { x: 0, y: 0.7 } });
+        fire(0.1, { spread: 120, startVelocity: 45, origin: { x: 0, y: 0.7 } });
+        
+        fire(0.25, { spread: 26, startVelocity: 55, origin: { x: 1, y: 0.7 } });
+        fire(0.2, { spread: 60, origin: { x: 1, y: 0.7 } });
+        fire(0.35, { spread: 100, decay: 0.91, scalar: 1.2, origin: { x: 1, y: 0.7 } });
+        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.5, origin: { x: 1, y: 0.7 } });
+        fire(0.1, { spread: 120, startVelocity: 45, origin: { x: 1, y: 0.7 } });
+    }
+
+
     function initGame() {
+        // Versteckt altes Konfetti, falls vorhanden
+        const canvas = document.getElementById('confetti-canvas');
+        if (canvas && typeof confetti !== 'undefined') {
+            confetti.create(canvas).reset();
+        }
+
         const grid = document.getElementById('grid');
         grid.innerHTML = '';
         scores = { p1: 0, p2: 0 };
@@ -282,11 +347,9 @@
         currentPlayer = 'p1';
         updateScoreboard();
         
-        // Duplizieren und Mischen
         cardsArray = [...products, ...products];
         cardsArray.sort(() => 0.5 - Math.random());
 
-        // Karten erstellen
         cardsArray.forEach(item => {
             const card = document.createElement('div');
             card.classList.add('card');
@@ -298,7 +361,6 @@
             const back = document.createElement('div');
             back.classList.add('card-face', 'card-back');
             
-            // Bild statt Icon
             back.innerHTML = `
                 <img src="${item.img}" class="card-image" alt="${item.name}">
                 <div class="card-label">${item.name}</div>
@@ -346,10 +408,13 @@
         matchesFound++;
         
         if (matchesFound === totalPairs) {
+            // HIER WIRD DAS KONFETTI AUSGELÖST
+            triggerProductConfetti(); 
+            
             setTimeout(() => {
                 let winner = scores.p1 > scores.p2 ? "Spieler 1" : (scores.p2 > scores.p1 ? "Spieler 2" : "Unentschieden");
                 alert(`Spiel vorbei! ${winner} gewinnt!`);
-            }, 500);
+            }, 1000); // Kleine Verzögerung, damit man das Konfetti sieht
         }
     }
 
@@ -394,7 +459,6 @@
         [firstCard, secondCard] = [null, null];
     }
 
-    // Spiel starten
     initGame();
 
 </script>
